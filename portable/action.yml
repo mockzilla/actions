@@ -5,6 +5,14 @@ inputs:
   token:
     description: GITHUB_TOKEN for repo identity verification
     required: true
+  region:
+    description: |
+      Preferred AWS region for your Mockzilla simulation (e.g. us-east-1, ap-southeast-1).
+      Used as a hint on first deploy only — if the region or its area is at capacity,
+      the nearest available region is used instead. Has no effect after the Mockzilla
+      simulation is already deployed. Optional.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -18,6 +26,7 @@ runs:
         ACTION: ${{ github.event.action }}
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        PREFERRED_REGION: ${{ inputs.region }}
       run: |
         post_error() {
           local msg="$1" upgrade="$2"
@@ -32,10 +41,10 @@ runs:
 
         post_success() {
           local url="$1"
-          echo "::notice::Mock API publishing to $url (may take a moment to go live)"
+          echo "::notice::Mockzilla simulation publishing to $url (may take a moment to go live)"
           if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mock API publishing to $url (may take a moment to go live)" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mock API publishing to $url (may take a moment to go live)"
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mockzilla simulation publishing to $url (may take a moment to go live)" --edit-last 2>/dev/null || \
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mockzilla simulation publishing to $url (may take a moment to go live)"
           fi
         }
 
@@ -47,6 +56,9 @@ runs:
             2>&1 || post_error "Mockzilla teardown failed"
           exit 0
         fi
+
+        REGION_FIELD=""
+        [ -n "$PREFERRED_REGION" ] && REGION_FIELD=",\"preferred_region\":\"$PREFERRED_REGION\""
 
         if [ ! -d "openapi" ] && [ ! -d "static" ]; then
           echo "::warning::Nothing to publish - no openapi/ or static/ directory found"
@@ -63,7 +75,7 @@ runs:
         RESPONSE=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           -H "Content-Type: application/json" \
-          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"portable\"}" \
+          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"portable\"${REGION_FIELD}}" \
           2>&1) || {
             post_error "Mockzilla publish failed"
             exit 1
@@ -88,7 +100,7 @@ runs:
         curl -sf -X PUT "$UPLOAD_URL" \
           -H "Content-Type: application/gzip" \
           --data-binary @/tmp/mockzilla-specs.tar.gz || {
-            post_error "Spec upload failed - your simulation was not updated"
+            post_error "Spec upload failed - your Mockzilla simulation was not updated"
             exit 1
           }
 
