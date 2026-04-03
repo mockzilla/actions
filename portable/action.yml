@@ -22,7 +22,7 @@ runs:
         post_error() {
           local msg="$1" upgrade="$2"
           local comment="**Mockzilla:** $msg"
-          [ -n "$upgrade" ] && comment="$comment — [upgrade]($upgrade)"
+          [ -n "$upgrade" ] && comment="$comment - [upgrade]($upgrade)"
           echo "::error::$msg"
           if [ -n "$PR_NUMBER" ]; then
             gh pr comment "$PR_NUMBER" --body "$comment" --edit-last 2>/dev/null || \
@@ -32,30 +32,38 @@ runs:
 
         post_success() {
           local url="$1"
-          echo "::notice::API simulation live at $url"
+          echo "::notice::Mock API publishing to $url (may take a moment to go live)"
           if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** API simulation live at $url" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** API simulation live at $url"
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mock API publishing to $url (may take a moment to go live)" --edit-last 2>/dev/null || \
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mock API publishing to $url (may take a moment to go live)"
           fi
         }
 
-        if [ ! -d "openapi" ] && [ ! -d "static" ]; then
-          echo "::warning::Nothing to publish — no openapi/ or static/ directory found"
+        if [ "$EVENT" = "pull_request" ] && [ "$ACTION" = "closed" ]; then
+          curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"portable\"}" \
+            2>&1 || post_error "Mockzilla teardown failed"
           exit 0
         fi
 
+        if [ ! -d "openapi" ] && [ ! -d "static" ]; then
+          echo "::warning::Nothing to publish - no openapi/ or static/ directory found"
+          exit 0
+        fi
+
+        echo "::notice::Packing specs..."
         tar -czf /tmp/mockzilla-specs.tar.gz \
           $([ -d openapi ] && echo openapi) \
           $([ -d static ] && echo static) \
           $([ -f app.yml ] && echo app.yml)
 
+        echo "::notice::Registering upload..."
         RESPONSE=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -F "specs=@/tmp/mockzilla-specs.tar.gz" \
-          -F "repo=$REPO" \
-          -F "event=$EVENT" \
-          -F "action=$ACTION" \
-          -F "mode=portable" \
+          -H "Content-Type: application/json" \
+          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"portable\"}" \
           2>&1) || {
             post_error "Mockzilla publish failed"
             exit 1
@@ -64,11 +72,25 @@ runs:
         ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
         MESSAGE=$(echo "$RESPONSE" | jq -r '.message // empty')
         UPGRADE_URL=$(echo "$RESPONSE" | jq -r '.upgrade_url // empty')
-        URL=$(echo "$RESPONSE" | jq -r '.url // empty')
 
         if [ -n "$ERROR" ]; then
           post_error "$MESSAGE" "$UPGRADE_URL"
           exit 1
         fi
 
+        UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.upload_url // empty')
+        if [ -z "$UPLOAD_URL" ]; then
+          post_error "No upload URL returned from Mockzilla"
+          exit 1
+        fi
+
+        echo "::notice::Uploading specs..."
+        curl -sf -X PUT "$UPLOAD_URL" \
+          -H "Content-Type: application/gzip" \
+          --data-binary @/tmp/mockzilla-specs.tar.gz || {
+            post_error "Spec upload failed - your simulation was not updated"
+            exit 1
+          }
+
+        URL=$(echo "$RESPONSE" | jq -r '.url // empty')
         [ -n "$URL" ] && post_success "$URL"
