@@ -15,6 +15,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
         REPO: ${{ github.repository }}
         EVENT: ${{ github.event_name }}
+        ACTION: ${{ github.event.action }}
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
@@ -52,6 +53,7 @@ runs:
           -F "specs=@/tmp/mockzilla-specs.tar.gz" \
           -F "repo=$REPO" \
           -F "event=$EVENT" \
+          -F "action=$ACTION" \
           -F "mode=portable" \
           2>&1) || {
             post_error "Mockzilla publish failed"
