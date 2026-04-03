@@ -46,7 +46,8 @@ runs:
 
         tar -czf /tmp/mockzilla-specs.tar.gz \
           $([ -d openapi ] && echo openapi) \
-          $([ -d static ] && echo static)
+          $([ -d static ] && echo static) \
+          $([ -f app.yml ] && echo app.yml)
 
         RESPONSE=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
