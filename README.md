@@ -32,10 +32,9 @@ Builds and publishes a codegen server to Mockzilla.
 
 Both actions accept the same inputs:
 
-| Input | Required | Default | Description |
-|---|---|---|---|
-| `token` | yes | — | `GITHUB_TOKEN` — used to verify repo identity |
-| `url` | no | `https://ingest.mockzilla.org/webhook` | Override for self-hosted or staging |
+| Input | Required | Description |
+|---|---|---|
+| `token` | yes | `GITHUB_TOKEN` — used to verify repo identity |
 
 ---
 

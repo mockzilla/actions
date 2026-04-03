@@ -5,10 +5,6 @@ inputs:
   token:
     description: GITHUB_TOKEN for repo identity verification
     required: true
-  url:
-    description: Mockzilla ingest endpoint
-    required: false
-    default: https://ingest.mockzilla.org/webhook
 
 runs:
   using: composite
@@ -17,52 +13,78 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
-        INGEST_URL: ${{ inputs.url }}
         REPO: ${{ github.repository }}
         EVENT: ${{ github.event_name }}
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
+        post_error() {
+          local msg="$1" upgrade="$2"
+          local comment="**Mockzilla:** $msg"
+          [ -n "$upgrade" ] && comment="$comment — [upgrade]($upgrade)"
+          echo "::error::$msg"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "$comment" --edit-last 2>/dev/null || \
+            gh pr comment "$PR_NUMBER" --body "$comment"
+          fi
+        }
+
+        post_success() {
+          local url="$1"
+          echo "::notice::API simulation live at $url"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** API simulation live at $url" --edit-last 2>/dev/null || \
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** API simulation live at $url"
+          fi
+        }
+
         if [ ! -f "go.mod" ]; then
-          echo "::error::codegen action requires go.mod in the repository root"
+          post_error "codegen action requires go.mod in the repository root"
           exit 1
         fi
 
-        echo "Building server binary..."
-        GOARCH=arm64 GOOS=linux go build -o /tmp/mockzilla-server ./...
+        # Step 1: build
+        echo "::notice::Building server binary..."
+        GOARCH=arm64 GOOS=linux go build -o /tmp/mockzilla-server ./... || {
+          post_error "Server build failed"
+          exit 1
+        }
 
-        RESPONSE=$(curl -sf -X POST "${INGEST_URL}?ref=${REF}" \
+        # Step 2: register upload intent, get presigned S3 URL
+        echo "::notice::Registering upload..."
+        INIT=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -F "server=@/tmp/mockzilla-server" \
-          -F "repo=$REPO" \
-          -F "event=$EVENT" \
-          -F "mode=codegen" \
+          -H "Content-Type: application/json" \
+          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"mode\":\"codegen\"}" \
           2>&1) || {
-            echo "::error::Mockzilla publish failed"
+            post_error "Failed to reach Mockzilla"
             exit 1
           }
 
-        URL=$(echo "$RESPONSE" | jq -r '.url // empty')
-        ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
-        MESSAGE=$(echo "$RESPONSE" | jq -r '.message // empty')
-        UPGRADE_URL=$(echo "$RESPONSE" | jq -r '.upgrade_url // empty')
+        ERROR=$(echo "$INIT" | jq -r '.error // empty')
+        MESSAGE=$(echo "$INIT" | jq -r '.message // empty')
+        UPGRADE_URL=$(echo "$INIT" | jq -r '.upgrade_url // empty')
 
         if [ -n "$ERROR" ]; then
-          COMMENT="**Mockzilla:** $MESSAGE"
-          [ -n "$UPGRADE_URL" ] && COMMENT="$COMMENT — [upgrade]($UPGRADE_URL)"
-          echo "::warning::$MESSAGE"
-          if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body "$COMMENT" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "$COMMENT"
-          fi
+          post_error "$MESSAGE" "$UPGRADE_URL"
           exit 1
         fi
 
-        if [ -n "$URL" ]; then
-          echo "::notice::API simulation live at $URL"
-          if [ -n "$PR_NUMBER" ]; then
-            COMMENT="**Mockzilla:** API simulation live at $URL"
-            gh pr comment "$PR_NUMBER" --body "$COMMENT" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "$COMMENT"
-          fi
+        UPLOAD_URL=$(echo "$INIT" | jq -r '.upload_url // empty')
+        if [ -z "$UPLOAD_URL" ]; then
+          post_error "No upload URL returned from Mockzilla"
+          exit 1
         fi
+
+        # Step 3: upload binary directly to S3
+        echo "::notice::Uploading server binary..."
+        curl -sf -X PUT "$UPLOAD_URL" \
+          -H "Content-Type: application/octet-stream" \
+          --data-binary @/tmp/mockzilla-server || {
+            post_error "Binary upload failed — your simulation was not updated"
+            exit 1
+          }
+
+        # Step 4: report success — provisioning is async, URL is known at this point
+        URL=$(echo "$INIT" | jq -r '.url // empty')
+        [ -n "$URL" ] && post_success "$URL"

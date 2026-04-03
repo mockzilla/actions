@@ -5,10 +5,6 @@ inputs:
   token:
     description: GITHUB_TOKEN for repo identity verification
     required: true
-  url:
-    description: Mockzilla ingest endpoint
-    required: false
-    default: https://ingest.mockzilla.org/webhook
 
 runs:
   using: composite
@@ -17,12 +13,31 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
-        INGEST_URL: ${{ inputs.url }}
         REPO: ${{ github.repository }}
         EVENT: ${{ github.event_name }}
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
+        post_error() {
+          local msg="$1" upgrade="$2"
+          local comment="**Mockzilla:** $msg"
+          [ -n "$upgrade" ] && comment="$comment — [upgrade]($upgrade)"
+          echo "::error::$msg"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "$comment" --edit-last 2>/dev/null || \
+            gh pr comment "$PR_NUMBER" --body "$comment"
+          fi
+        }
+
+        post_success() {
+          local url="$1"
+          echo "::notice::API simulation live at $url"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** API simulation live at $url" --edit-last 2>/dev/null || \
+            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** API simulation live at $url"
+          fi
+        }
+
         if [ ! -d "openapi" ] && [ ! -d "static" ]; then
           echo "::warning::Nothing to publish — no openapi/ or static/ directory found"
           exit 0
@@ -32,38 +47,25 @@ runs:
           $([ -d openapi ] && echo openapi) \
           $([ -d static ] && echo static)
 
-        RESPONSE=$(curl -sf -X POST "${INGEST_URL}?ref=${REF}" \
+        RESPONSE=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           -F "specs=@/tmp/mockzilla-specs.tar.gz" \
           -F "repo=$REPO" \
           -F "event=$EVENT" \
           -F "mode=portable" \
           2>&1) || {
-            echo "::error::Mockzilla publish failed"
+            post_error "Mockzilla publish failed"
             exit 1
           }
 
-        URL=$(echo "$RESPONSE" | jq -r '.url // empty')
         ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
         MESSAGE=$(echo "$RESPONSE" | jq -r '.message // empty')
         UPGRADE_URL=$(echo "$RESPONSE" | jq -r '.upgrade_url // empty')
+        URL=$(echo "$RESPONSE" | jq -r '.url // empty')
 
         if [ -n "$ERROR" ]; then
-          COMMENT="**Mockzilla:** $MESSAGE"
-          [ -n "$UPGRADE_URL" ] && COMMENT="$COMMENT — [upgrade]($UPGRADE_URL)"
-          echo "::warning::$MESSAGE"
-          if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body "$COMMENT" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "$COMMENT"
-          fi
+          post_error "$MESSAGE" "$UPGRADE_URL"
           exit 1
         fi
 
-        if [ -n "$URL" ]; then
-          echo "::notice::API simulation live at $URL"
-          if [ -n "$PR_NUMBER" ]; then
-            COMMENT="**Mockzilla:** API simulation live at $URL"
-            gh pr comment "$PR_NUMBER" --body "$COMMENT" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "$COMMENT"
-          fi
-        fi
+        [ -n "$URL" ] && post_success "$URL"
