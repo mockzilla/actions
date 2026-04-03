@@ -72,14 +72,18 @@ runs:
           $([ -f app.yml ] && echo app.yml)
 
         echo "::notice::Registering upload..."
-        RESPONSE=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
+        HTTP_CODE=$(curl -s -w "%{http_code}" \
+          -o /tmp/mz-response.json \
+          -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
           -H "Authorization: Bearer $GITHUB_TOKEN" \
           -H "Content-Type: application/json" \
-          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"portable\"${REGION_FIELD}}" \
-          2>&1) || {
-            post_error "Mockzilla publish failed"
-            exit 1
-          }
+          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"portable\"${REGION_FIELD}}")
+        RESPONSE=$(cat /tmp/mz-response.json 2>/dev/null)
+        echo "::debug::Ingest HTTP ${HTTP_CODE}: ${RESPONSE}"
+        if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ] 2>/dev/null; then
+          post_error "Mockzilla publish failed (HTTP ${HTTP_CODE}: ${RESPONSE})"
+          exit 1
+        fi
 
         ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
         MESSAGE=$(echo "$RESPONSE" | jq -r '.message // empty')
