@@ -95,8 +95,12 @@ poll_status() {
       continue
     fi
     status=$(echo "$resp" | jq -r '.status // empty' 2>/dev/null)
-    elapsed=$(echo "$resp" | jq -r '.elapsed_ms // 0' 2>/dev/null)
-    echo "Waiting for Mockzilla simulation... status=${status} elapsed=${elapsed}ms"
+    if [ -z "$status" ]; then
+      echo "Waiting for Mockzilla simulation..."
+    else
+      elapsed=$(echo "$resp" | jq -r '.elapsed_ms // 0' 2>/dev/null)
+      echo "Waiting for Mockzilla simulation... status=${status} elapsed=${elapsed}ms"
+    fi
     case "$status" in
       active)
         live_url=$(echo "$resp" | jq -r '.url // empty')
