@@ -89,9 +89,14 @@ poll_status() {
     resp=$(curl -sf \
       "https://ingest.mockzilla.org/webhook?org=${org}&repo=${repo}&ref=${REF}" \
       -H "Authorization: Bearer $GITHUB_TOKEN" 2>/dev/null) || true
-    status=$(echo "$resp" | jq -r '.status // empty')
-    elapsed=$(echo "$resp" | jq -r '.elapsed_ms // 0')
-    echo "::notice::Waiting for Mockzilla simulation... status=${status} elapsed=${elapsed}ms"
+    if [ -z "$resp" ]; then
+      echo "Waiting for Mockzilla simulation... (no response yet)"
+      sleep 15
+      continue
+    fi
+    status=$(echo "$resp" | jq -r '.status // empty' 2>/dev/null)
+    elapsed=$(echo "$resp" | jq -r '.elapsed_ms // 0' 2>/dev/null)
+    echo "Waiting for Mockzilla simulation... status=${status} elapsed=${elapsed}ms"
     case "$status" in
       active)
         live_url=$(echo "$resp" | jq -r '.url // empty')
