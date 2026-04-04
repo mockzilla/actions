@@ -86,9 +86,9 @@ poll_status() {
       post_error "Mockzilla simulation did not become active within ${TIMEOUT_MINUTES} minutes"
       exit 1
     fi
-    resp=$(curl -sf \
+    resp=$(curl -s \
       "https://ingest.mockzilla.org/webhook?org=${org}&repo=${repo}&ref=${REF}" \
-      -H "Authorization: Bearer $GITHUB_TOKEN" 2>/dev/null) || true
+      -H "Authorization: Bearer $GITHUB_TOKEN" 2>/dev/null)
     if [ -z "$resp" ]; then
       echo "Waiting for Mockzilla simulation... (no response yet)"
       sleep 15
