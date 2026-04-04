@@ -13,6 +13,10 @@ inputs:
       simulation is already deployed. Optional.
     required: false
     default: ''
+  timeout-minutes:
+    description: Maximum minutes to wait for the simulation to become active.
+    required: false
+    default: '5'
 
 runs:
   using: composite
@@ -27,34 +31,12 @@ runs:
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         PREFERRED_REGION: ${{ inputs.region }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
       run: |
-        post_error() {
-          local msg="$1" upgrade="$2"
-          local comment="**Mockzilla:** $msg"
-          [ -n "$upgrade" ] && comment="$comment - [upgrade]($upgrade)"
-          echo "::error::$msg"
-          if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body "$comment" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "$comment"
-          fi
-        }
-
-        post_success() {
-          local url="$1"
-          echo "::notice::Mockzilla simulation publishing to $url (may take a moment to go live)"
-          if [ -n "$PR_NUMBER" ]; then
-            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mockzilla simulation publishing to $url (may take a moment to go live)" --edit-last 2>/dev/null || \
-            gh pr comment "$PR_NUMBER" --body "**Mockzilla:** Mockzilla simulation publishing to $url (may take a moment to go live)"
-          fi
-        }
+        source "$GITHUB_ACTION_PATH/../shared/functions.sh"
 
         if [ "$EVENT" = "pull_request" ] && [ "$ACTION" = "closed" ]; then
-          curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"codegen\"}" \
-            2>&1 || post_error "Mockzilla teardown failed"
-          exit 0
+          handle_teardown "codegen"
         fi
 
         if [ ! -f "go.mod" ]; then
@@ -68,33 +50,8 @@ runs:
           exit 1
         }
 
-        REGION_FIELD=""
-        [ -n "$PREFERRED_REGION" ] && REGION_FIELD=",\"preferred_region\":\"$PREFERRED_REGION\""
-
         echo "::notice::Registering upload..."
-        RESPONSE=$(curl -sf -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
-          -H "Authorization: Bearer $GITHUB_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"codegen\"${REGION_FIELD}}" \
-          2>&1) || {
-            post_error "Failed to reach Mockzilla"
-            exit 1
-          }
-
-        ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
-        MESSAGE=$(echo "$RESPONSE" | jq -r '.message // empty')
-        UPGRADE_URL=$(echo "$RESPONSE" | jq -r '.upgrade_url // empty')
-
-        if [ -n "$ERROR" ]; then
-          post_error "$MESSAGE" "$UPGRADE_URL"
-          exit 1
-        fi
-
-        UPLOAD_URL=$(echo "$RESPONSE" | jq -r '.upload_url // empty')
-        if [ -z "$UPLOAD_URL" ]; then
-          post_error "No upload URL returned from Mockzilla"
-          exit 1
-        fi
+        register_upload "codegen"
 
         echo "::notice::Uploading server binary..."
         curl -sf -X PUT "$UPLOAD_URL" \
@@ -104,5 +61,4 @@ runs:
             exit 1
           }
 
-        URL=$(echo "$RESPONSE" | jq -r '.url // empty')
-        [ -n "$URL" ] && post_success "$URL"
+        poll_status
