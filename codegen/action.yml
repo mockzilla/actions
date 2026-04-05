@@ -45,7 +45,7 @@ runs:
         fi
 
         echo "::notice::Building server binary..."
-        GOARCH=arm64 GOOS=linux go build -o /tmp/mockzilla-server ./... || {
+        GOARCH=arm64 GOOS=linux go build -o /tmp/mockzilla-server ./cmd/server || {
           post_error "Server build failed"
           exit 1
         }
