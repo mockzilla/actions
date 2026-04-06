@@ -54,7 +54,13 @@ register_upload() {
   echo "::debug::Ingest HTTP ${http_code}: ${response}"
 
   if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ] 2>/dev/null; then
-    post_error "Mockzilla publish failed (HTTP ${http_code}: ${response})"
+    local err_message
+    err_message=$(echo "$response" | jq -r '.message // empty' 2>/dev/null)
+    if [ -n "$err_message" ]; then
+      post_error "$err_message"
+    else
+      post_error "Mockzilla publish failed (HTTP ${http_code})"
+    fi
     exit 1
   fi
 
