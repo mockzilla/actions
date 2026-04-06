@@ -40,8 +40,10 @@ handle_teardown() {
 # POSTs to ingest, validates response, sets UPLOAD_URL.
 # Exits 1 on any error.
 register_upload() {
-  local mode="$1" region_field=""
+  local mode="$1" region_field="" memory_field="" timeout_field=""
   [ -n "$PREFERRED_REGION" ] && region_field=",\"preferred_region\":\"$PREFERRED_REGION\""
+  [ -n "$MEMORY_MB" ] && memory_field=",\"memory_mb\":$MEMORY_MB"
+  [ -n "$TIMEOUT_MS" ] && timeout_field=",\"timeout_ms\":$TIMEOUT_MS"
 
   local http_code response
   http_code=$(curl -s -w "%{http_code}" \
@@ -49,7 +51,7 @@ register_upload() {
     -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"${mode}\"${region_field}}")
+    -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"${mode}\"${region_field}${memory_field}${timeout_field}}")
   response=$(cat /tmp/mz-response.json 2>/dev/null)
   echo "::debug::Ingest HTTP ${http_code}: ${response}"
 

@@ -13,6 +13,14 @@ inputs:
       simulation is already deployed. Optional.
     required: false
     default: ''
+  memory:
+    description: Memory allocated to the simulation in megabytes, in 128 MB increments (e.g. 128, 256, 512).
+    required: false
+    default: ''
+  timeout:
+    description: Request timeout for the simulation in milliseconds (e.g. 5000, 10000).
+    required: false
+    default: ''
   timeout-minutes:
     description: Maximum minutes to wait for the simulation to become active.
     required: false
@@ -31,6 +39,8 @@ runs:
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         PREFERRED_REGION: ${{ inputs.region }}
+        MEMORY_MB: ${{ inputs.memory }}
+        TIMEOUT_MS: ${{ inputs.timeout }}
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
       run: |
         source "$GITHUB_ACTION_PATH/../shared/functions.sh"
