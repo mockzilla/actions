@@ -14,7 +14,7 @@ inputs:
     required: false
     default: ''
   memory:
-    description: Memory allocated to the simulation in megabytes, in 128 MB increments (e.g. 128, 256, 512).
+    description: Memory allocated to the simulation in megabytes (e.g. 128, 256, 512).
     required: false
     default: ''
   timeout:
