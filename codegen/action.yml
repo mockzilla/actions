@@ -54,16 +54,16 @@ runs:
           exit 1
         fi
 
-        echo "::notice::Building server binary..."
+        echo "Building server binary..."
         GOARCH=arm64 GOOS=linux go build -o /tmp/mockzilla-server ./cmd/server || {
           post_error "Server build failed"
           exit 1
         }
 
-        echo "::notice::Registering upload..."
+        echo "Registering upload..."
         register_upload "codegen"
 
-        echo "::notice::Uploading server binary..."
+        echo "Uploading server binary..."
         curl -sf -X PUT "$UPLOAD_URL" \
           -H "Content-Type: application/octet-stream" \
           --data-binary @/tmp/mockzilla-server || {

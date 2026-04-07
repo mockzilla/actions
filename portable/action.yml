@@ -54,17 +54,17 @@ runs:
           exit 0
         fi
 
-        echo "::notice::Packing specs..."
+        echo "Packing specs..."
         tar -czf /tmp/mockzilla-specs.tar.gz \
           $([ -d openapi ] && echo openapi) \
           $([ -d static ] && echo static) \
           $([ -f app.yml ] && echo app.yml) \
           $([ -f context.yml ] && echo context.yml)
 
-        echo "::notice::Registering upload..."
+        echo "Registering upload..."
         register_upload "portable"
 
-        echo "::notice::Uploading specs..."
+        echo "Uploading specs..."
         curl -sf -X PUT "$UPLOAD_URL" \
           -H "Content-Type: application/gzip" \
           --data-binary @/tmp/mockzilla-specs.tar.gz || {
