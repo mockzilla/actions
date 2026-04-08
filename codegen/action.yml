@@ -13,12 +13,16 @@ inputs:
       simulation is already deployed. Optional.
     required: false
     default: ''
-  memory:
+  memory-size:
     description: Memory allocated to the simulation in megabytes (e.g. 128, 256, 512).
     required: false
-    default: ''
+    default: '128'
   timeout:
-    description: Request timeout for the simulation in milliseconds (e.g. 5000, 10000).
+    description: Request timeout for the simulation in seconds (e.g. 30, 60).
+    required: false
+    default: ''
+  environment:
+    description: JSON object of environment variables to set in the simulation (e.g. '{"ENV":"production","DEBUG":"true"}').
     required: false
     default: ''
   timeout-minutes:
@@ -39,8 +43,9 @@ runs:
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         PREFERRED_REGION: ${{ inputs.region }}
-        MEMORY_MB: ${{ inputs.memory }}
-        TIMEOUT_MS: ${{ inputs.timeout }}
+        MEMORY_SIZE: ${{ inputs.memory-size }}
+        TIMEOUT: ${{ inputs.timeout }}
+        ENVIRONMENT: ${{ inputs.environment }}
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
       run: |
         source "$GITHUB_ACTION_PATH/../shared/functions.sh"

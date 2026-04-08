@@ -2,7 +2,7 @@
 # Shared helpers sourced by portable and codegen actions.
 # Expects these env vars to be set by the caller:
 #   GITHUB_TOKEN, REPO, EVENT, ACTION, REF, PR_NUMBER,
-#   PREFERRED_REGION, TIMEOUT_MINUTES
+#   PREFERRED_REGION, MEMORY_SIZE, TIMEOUT, ENVIRONMENT, TIMEOUT_MINUTES
 
 post_error() {
   local msg="$1" upgrade="$2"
@@ -40,10 +40,11 @@ handle_teardown() {
 # POSTs to ingest, validates response, sets UPLOAD_URL.
 # Exits 1 on any error.
 register_upload() {
-  local mode="$1" region_field="" memory_field="" timeout_field=""
+  local mode="$1" region_field="" memory_field="" timeout_field="" env_field=""
   [ -n "$PREFERRED_REGION" ] && region_field=",\"preferred_region\":\"$PREFERRED_REGION\""
-  [ -n "$MEMORY_MB" ] && memory_field=",\"memory_mb\":$MEMORY_MB"
-  [ -n "$TIMEOUT_MS" ] && timeout_field=",\"timeout_ms\":$TIMEOUT_MS"
+  [ -n "$MEMORY_SIZE" ] && memory_field=",\"memory_size\":$MEMORY_SIZE"
+  [ -n "$TIMEOUT" ] && timeout_field=",\"timeout\":$TIMEOUT"
+  [ -n "$ENVIRONMENT" ] && env_field=",\"environment\":$ENVIRONMENT"
 
   local http_code response
   http_code=$(curl -s -w "%{http_code}" \
@@ -51,7 +52,7 @@ register_upload() {
     -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"${mode}\"${region_field}${memory_field}${timeout_field}}")
+    -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"${mode}\"${region_field}${memory_field}${timeout_field}${env_field}}")
   response=$(cat /tmp/mz-response.json 2>/dev/null)
   echo "::debug::Ingest HTTP ${http_code}: ${response}"
 

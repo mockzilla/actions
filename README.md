@@ -13,8 +13,9 @@ Publishes `openapi/` and `static/` specs to Mockzilla.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1       # optional
-    memory: 256              # optional, in MB
-    timeout: 10000           # optional, in milliseconds
+    memory-size: 256         # optional, in MB (default: 128)
+    timeout: 60              # optional, in seconds
+    environment: '{"ENV":"production","DEBUG":"true"}'  # optional
 ```
 
 ---
@@ -28,8 +29,9 @@ Builds and publishes a codegen server to Mockzilla.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1       # optional
-    memory: 256              # optional, in MB
-    timeout: 10000           # optional, in milliseconds
+    memory-size: 256         # optional, in MB (default: 128)
+    timeout: 60              # optional, in seconds
+    environment: '{"ENV":"production","DEBUG":"true"}'  # optional
 ```
 
 ---
@@ -42,8 +44,9 @@ Both actions accept the same inputs:
 |---|---|---|
 | `token` | yes | `GITHUB_TOKEN` — used to verify repo identity |
 | `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only — if the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
-| `memory` | no | Memory allocated to the simulation in megabytes (e.g. `128`, `256`, `512`). |
-| `timeout` | no | Request timeout for the running simulation in milliseconds (e.g. `5000`, `10000`). |
+| `memory-size` | no | Memory allocated to the simulation in megabytes (e.g. `128`, `256`, `512`). Defaults to `128`. |
+| `timeout` | no | Request timeout for the simulation in seconds (e.g. `30`, `60`). |
+| `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
 | `timeout-minutes` | no | Maximum minutes the action will poll for the simulation to become active before failing the workflow step. Defaults to `5`. |
 
 ---
