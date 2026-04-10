@@ -86,3 +86,31 @@ jobs:
 Your API simulation will be live at:
 - `https://api.mockzilla.org/gh/{org}/{repo}/` — main branch
 - `https://api.mockzilla.org/gh/{org}/{repo}/pr-{n}/` — per PR (where supported)
+
+---
+
+## Outputs
+
+| Output | Description |
+|---|---|
+| `url` | The live simulation URL |
+
+Use in a subsequent step:
+
+```yaml
+- uses: mockzilla/actions/portable@v1
+  id: mockzilla
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+- run: echo "${{ steps.mockzilla.outputs.url }}"
+```
+
+---
+
+## Check from the CLI
+
+Get your simulation URL without leaving the terminal:
+
+```bash
+gh run view --exit-status && echo "https://api.mockzilla.org/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/$(git branch --show-current)/"
+```

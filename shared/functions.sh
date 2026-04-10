@@ -18,6 +18,11 @@ post_error() {
 post_success() {
   local url="$1"
   echo "::notice::Mockzilla simulation live at $url"
+  echo "url=$url" >> "$GITHUB_OUTPUT"
+  {
+    echo "### Mockzilla"
+    echo "Simulation live at $url"
+  } >> "$GITHUB_STEP_SUMMARY"
   if [ -n "$PR_NUMBER" ]; then
     gh pr comment "$PR_NUMBER" --body "**Mockzilla:** simulation live at $url" --edit-last 2>/dev/null || \
     gh pr comment "$PR_NUMBER" --body "**Mockzilla:** simulation live at $url"

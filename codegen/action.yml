@@ -1,6 +1,11 @@
 name: Mockzilla Codegen
 description: Builds and publishes a codegen server to Mockzilla
 
+outputs:
+  url:
+    description: The live simulation URL
+    value: ${{ steps.publish.outputs.url }}
+
 inputs:
   token:
     description: GITHUB_TOKEN for repo identity verification
@@ -34,6 +39,7 @@ runs:
   using: composite
   steps:
     - name: publish
+      id: publish
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
