@@ -25,6 +25,14 @@ inputs:
     description: JSON object of environment variables to set in the simulation (e.g. '{"ENV":"production","DEBUG":"true"}').
     required: false
     default: ''
+  spec-dir:
+    description: Directory containing OpenAPI specs. Defaults to 'openapi'.
+    required: false
+    default: 'openapi'
+  static-dir:
+    description: Directory containing static API responses. Defaults to 'static'.
+    required: false
+    default: 'static'
   timeout-minutes:
     description: Maximum minutes to wait for the simulation to become active.
     required: false
@@ -47,6 +55,8 @@ runs:
         TIMEOUT: ${{ inputs.timeout }}
         ENVIRONMENT: ${{ inputs.environment }}
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+        SPEC_DIR: ${{ inputs.spec-dir }}
+        STATIC_DIR: ${{ inputs.static-dir }}
       run: |
         source "$GITHUB_ACTION_PATH/../shared/functions.sh"
 
@@ -54,17 +64,29 @@ runs:
           handle_teardown "portable"
         fi
 
-        if [ ! -d "openapi" ] && [ ! -d "static" ]; then
-          echo "::warning::Nothing to publish - no openapi/ or static/ directory found"
+        SPEC_DIR="${SPEC_DIR%/}"
+        STATIC_DIR="${STATIC_DIR%/}"
+
+        if [ ! -d "$SPEC_DIR" ] && [ ! -d "$STATIC_DIR" ]; then
+          echo "::warning::Nothing to publish - no ${SPEC_DIR}/ or ${STATIC_DIR}/ directory found"
           exit 0
         fi
 
         echo "Packing specs..."
-        tar -czf /tmp/mockzilla-specs.tar.gz \
-          $([ -d openapi ] && echo openapi) \
-          $([ -d static ] && echo static) \
-          $([ -f app.yml ] && echo app.yml) \
-          $([ -f context.yml ] && echo context.yml)
+        TAR_ARGS=""
+        TAR_TRANSFORM=""
+        if [ -d "$SPEC_DIR" ]; then
+          TAR_ARGS="$SPEC_DIR"
+          [ "$SPEC_DIR" != "openapi" ] && TAR_TRANSFORM="--transform=s|^${SPEC_DIR}|openapi|"
+        fi
+        if [ -d "$STATIC_DIR" ]; then
+          TAR_ARGS="$TAR_ARGS $STATIC_DIR"
+          [ "$STATIC_DIR" != "static" ] && TAR_TRANSFORM="$TAR_TRANSFORM --transform=s|^${STATIC_DIR}|static|"
+        fi
+        [ -f app.yml ] && TAR_ARGS="$TAR_ARGS app.yml"
+        [ -f context.yml ] && TAR_ARGS="$TAR_ARGS context.yml"
+
+        tar -czf /tmp/mockzilla-specs.tar.gz $TAR_TRANSFORM $TAR_ARGS
 
         echo "Registering upload..."
         register_upload "portable"
