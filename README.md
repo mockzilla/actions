@@ -16,6 +16,7 @@ Publishes `openapi/` and `static/` specs to Mockzilla.
     memory-size: 256         # optional, in MB (default: 128)
     timeout: 60              # optional, in seconds
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
+    host: api.mockzilla.net   # optional, defaults to org setting
     spec-dir: openapi        # optional, defaults to 'openapi'
     static-dir: static       # optional, defaults to 'static'
 ```
@@ -34,6 +35,7 @@ Builds and publishes a codegen server to Mockzilla.
     memory-size: 256         # optional, in MB (default: 128)
     timeout: 60              # optional, in seconds
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
+    host: api.mockzilla.net   # optional, defaults to org setting
 ```
 
 ---
@@ -49,6 +51,7 @@ Both actions accept the same inputs:
 | `memory-size` | no | Memory allocated to the simulation in megabytes (e.g. `128`, `256`, `512`). Defaults to `128`. |
 | `timeout` | no | Request timeout for the simulation in seconds (e.g. `30`, `60`). |
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
+| `host` | no | API host for the simulation URL. One of `api.mockzilla.org`, `api.mockzilla.de`, or `api.mockzilla.net`. Defaults to the org setting (or `api.mockzilla.org` if not set). |
 | `timeout-minutes` | no | Maximum minutes the action will poll for the simulation to become active before failing the workflow step. Defaults to `5`. |
 
 **Portable-only inputs:**

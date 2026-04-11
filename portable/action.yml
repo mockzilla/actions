@@ -30,6 +30,10 @@ inputs:
     description: JSON object of environment variables to set in the simulation (e.g. '{"ENV":"production","DEBUG":"true"}').
     required: false
     default: ''
+  host:
+    description: API host for the simulation URL (api.mockzilla.org, api.mockzilla.de, or api.mockzilla.net). Defaults to the org setting.
+    required: false
+    default: ''
   spec-dir:
     description: Directory containing OpenAPI specs. Defaults to 'openapi'.
     required: false
@@ -60,6 +64,7 @@ runs:
         MEMORY_SIZE: ${{ inputs.memory-size }}
         TIMEOUT: ${{ inputs.timeout }}
         ENVIRONMENT: ${{ inputs.environment }}
+        HOST: ${{ inputs.host }}
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
         SPEC_DIR: ${{ inputs.spec-dir }}
         STATIC_DIR: ${{ inputs.static-dir }}
