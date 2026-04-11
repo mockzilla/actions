@@ -17,15 +17,20 @@ post_error() {
 
 post_success() {
   local url="$1"
+  local terms_notice=""
+  if [ "$FIRST_USE" = "true" ]; then
+    terms_notice=$'\n\nBy using Mockzilla you agree to our [Terms of Service](https://mockzilla.org/terms/) and [Privacy Policy](https://mockzilla.org/privacy/).'
+  fi
   echo "::notice::Mockzilla simulation live at $url"
   echo "url=$url" >> "$GITHUB_OUTPUT"
   {
     echo "### Mockzilla"
     echo "Simulation live at $url"
+    [ -n "$terms_notice" ] && echo "$terms_notice"
   } >> "$GITHUB_STEP_SUMMARY"
   if [ -n "$PR_NUMBER" ]; then
-    gh pr comment "$PR_NUMBER" --body "**Mockzilla:** simulation live at $url" --edit-last 2>/dev/null || \
-    gh pr comment "$PR_NUMBER" --body "**Mockzilla:** simulation live at $url"
+    gh pr comment "$PR_NUMBER" --body "**Mockzilla:** simulation live at $url${terms_notice}" --edit-last 2>/dev/null || \
+    gh pr comment "$PR_NUMBER" --body "**Mockzilla:** simulation live at $url${terms_notice}"
   fi
 }
 
@@ -87,6 +92,8 @@ register_upload() {
     post_error "No upload URL returned from Mockzilla"
     exit 1
   fi
+
+  FIRST_USE=$(echo "$response" | jq -r '.first_use // empty')
 }
 
 poll_status() {
