@@ -46,6 +46,14 @@ inputs:
     description: Maximum minutes to wait for the simulation to become active.
     required: false
     default: '5'
+  delete:
+    description: |
+      Remove this repository from Mockzilla. When set to 'true', the
+      action skips publishing and deletes all mock APIs for this repo.
+      Useful on the free plan to free up your slot before connecting a
+      different repository.
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -68,8 +76,13 @@ runs:
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
         SPEC_DIR: ${{ inputs.spec-dir }}
         STATIC_DIR: ${{ inputs.static-dir }}
+        DELETE: ${{ inputs.delete }}
       run: |
         source "$GITHUB_ACTION_PATH/../shared/functions.sh"
+
+        if [ "$DELETE" = "true" ]; then
+          handle_delete "portable"
+        fi
 
         if [ "$EVENT" = "pull_request" ] && [ "$ACTION" = "closed" ]; then
           handle_teardown "portable"

@@ -46,6 +46,28 @@ handle_teardown() {
   exit 0
 }
 
+# handle_delete <mode>
+# Sends a sim-level delete request and exits 0.
+# Releases the org's sim slot by removing the entire simulation for this repo.
+handle_delete() {
+  local mode="$1"
+  local http_code
+  http_code=$(curl -s -o /tmp/mz-response.json -w "%{http_code}" \
+    -X DELETE "https://ingest.mockzilla.org/webhook" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"repo\":\"$REPO\",\"mode\":\"${mode}\"}")
+  if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ] 2>/dev/null; then
+    local err_message
+    err_message=$(jq -r '.message // empty' /tmp/mz-response.json 2>/dev/null)
+    [ -z "$err_message" ] && err_message="Mockzilla delete failed (HTTP ${http_code})"
+    post_error "$err_message"
+    exit 1
+  fi
+  echo "::notice::Mockzilla: repository removed"
+  exit 0
+}
+
 # register_upload <mode>
 # POSTs to ingest, validates response, sets UPLOAD_URL.
 # Exits 1 on any error.

@@ -53,6 +53,7 @@ Both actions accept the same inputs:
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
 | `host` | no | API host for the simulation URL. One of `api.mockzilla.org`, `api.mockzilla.de`, or `api.mockzilla.net`. Defaults to the org setting (or `api.mockzilla.org` if not set). |
 | `timeout-minutes` | no | Maximum minutes the action will poll for the simulation to become active before failing the workflow step. Defaults to `5`. |
+| `delete` | no | Remove this repository from Mockzilla. When set to `true`, the action skips publishing and deletes all mock APIs for this repo. Useful on the free plan to free up your slot before connecting a different repository. Defaults to `false`. |
 
 **Portable-only inputs:**
 
@@ -106,6 +107,31 @@ Use in a subsequent step:
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
 - run: echo "${{ steps.mockzilla.outputs.url }}"
+```
+
+---
+
+## Removing a repository from Mockzilla
+
+On the free plan you can only have one repository connected to Mockzilla at
+a time. If you want to try a different repository, run the action with
+`delete: true` on the old one first — this removes all its mock APIs from
+Mockzilla and frees the spot so you can publish from another repo.
+
+```yaml
+name: mockzilla-remove
+
+on:
+  workflow_dispatch:
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mockzilla/actions/portable@v1   # or codegen@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          delete: true
 ```
 
 ---
