@@ -71,9 +71,7 @@ runs:
         fi
 
         echo "Building server binary..."
-        # mz-runtime image is x86_64; customer binary must match or Lambda
-        # returns "Exec format error" on init.
-        GOARCH=amd64 GOOS=linux go build -o /tmp/mockzilla-server ./cmd/server || {
+        GOARCH=arm64 GOOS=linux go build -o /tmp/mockzilla-server ./cmd/server || {
           post_error "Server build failed"
           exit 1
         }
