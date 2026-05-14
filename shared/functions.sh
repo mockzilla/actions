@@ -4,11 +4,11 @@
 #   GITHUB_TOKEN, REPO, EVENT, ACTION, REF, PR_NUMBER,
 #   PREFERRED_REGION, MEMORY_SIZE, TIMEOUT, ENVIRONMENT, HOST, TIMEOUT_MINUTES
 
-MOCKZILLA_VERSION="2.3.0"
-
 install_mockzilla() {
-  local url="https://github.com/mockzilla/mockzilla/releases/download/v${MOCKZILLA_VERSION}/mockzilla-v${MOCKZILLA_VERSION}-linux-amd64"
-  curl -sfL "$url" -o /tmp/mockzilla
+  GH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}" gh release download \
+    --repo mockzilla/mockzilla \
+    --pattern '*-linux-amd64' \
+    --output /tmp/mockzilla
   chmod +x /tmp/mockzilla
   export PATH="/tmp:$PATH"
 }
