@@ -13,7 +13,7 @@ inputs:
   region:
     description: |
       Preferred AWS region for your Mockzilla simulation (e.g. us-east-1, ap-southeast-1).
-      Used as a hint on first deploy only — if the region or its area is at capacity,
+      Used as a hint on first deploy only. If the region or its area is at capacity,
       the nearest available region is used instead. Has no effect after the Mockzilla
       simulation is already deployed. Optional.
     required: false

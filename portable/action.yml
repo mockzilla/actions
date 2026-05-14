@@ -1,5 +1,5 @@
 name: Mockzilla Portable
-description: Publishes OpenAPI and static specs to Mockzilla
+description: Publishes per-service OpenAPI/static mocks to Mockzilla
 
 outputs:
   url:
@@ -13,7 +13,7 @@ inputs:
   region:
     description: |
       Preferred AWS region for your Mockzilla simulation (e.g. us-east-1, ap-southeast-1).
-      Used as a hint on first deploy only — if the region or its area is at capacity,
+      Used as a hint on first deploy only. If the region or its area is at capacity,
       the nearest available region is used instead. Has no effect after the Mockzilla
       simulation is already deployed. Optional.
     required: false
@@ -34,14 +34,17 @@ inputs:
     description: API host for the simulation URL (api.mockzilla.org, api.mockzilla.de, or api.mockzilla.net). Defaults to the org setting.
     required: false
     default: ''
-  spec-dir:
-    description: Directory containing OpenAPI specs. Defaults to 'openapi'.
+  services-dir:
+    description: |
+      Directory containing per-service folders. Each `<services-dir>/<name>/`
+      becomes one service. A service folder can contain an OpenAPI spec
+      (any *.{yml,yaml,json}, with `openapi.{yml,yaml,json}` as the
+      canonical name when multiple specs are present), an optional
+      config.yml (latency / errors / mount / upstream / cache), an optional
+      context.yml (flat replacement values), and an optional static/
+      directory for canned responses. Defaults to 'services'.
     required: false
-    default: 'openapi'
-  static-dir:
-    description: Directory containing static API responses. Defaults to 'static'.
-    required: false
-    default: 'static'
+    default: 'services'
   timeout-minutes:
     description: Maximum minutes to wait for the simulation to become active.
     required: false
@@ -74,8 +77,7 @@ runs:
         ENVIRONMENT: ${{ inputs.environment }}
         HOST: ${{ inputs.host }}
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
-        SPEC_DIR: ${{ inputs.spec-dir }}
-        STATIC_DIR: ${{ inputs.static-dir }}
+        SERVICES_DIR: ${{ inputs.services-dir }}
         DELETE: ${{ inputs.delete }}
       run: |
         source "$GITHUB_ACTION_PATH/../shared/functions.sh"
@@ -88,28 +90,24 @@ runs:
           handle_teardown "portable"
         fi
 
-        SPEC_DIR="${SPEC_DIR%/}"
-        STATIC_DIR="${STATIC_DIR%/}"
-
-        if [ ! -d "$SPEC_DIR" ] && [ ! -d "$STATIC_DIR" ]; then
-          echo "::warning::Nothing to publish - no ${SPEC_DIR}/ or ${STATIC_DIR}/ directory found"
+        SERVICES_DIR="${SERVICES_DIR%/}"
+        if [ ! -d "$SERVICES_DIR" ]; then
+          echo "::warning::Nothing to publish - no '${SERVICES_DIR}/' directory found"
           exit 0
         fi
 
-        echo "Packing specs..."
-        TAR_ARGS=""
+        # The runtime expects the services tree at a fixed in-archive path
+        # (`services/`). Rewrite the on-disk dir name if the user picked
+        # something else.
         TAR_TRANSFORM=""
-        if [ -d "$SPEC_DIR" ]; then
-          TAR_ARGS="$SPEC_DIR"
-          [ "$SPEC_DIR" != "openapi" ] && TAR_TRANSFORM="--transform=s|^${SPEC_DIR}|openapi|"
+        if [ "$SERVICES_DIR" != "services" ]; then
+          TAR_TRANSFORM="--transform=s|^${SERVICES_DIR}|services|"
         fi
-        if [ -d "$STATIC_DIR" ]; then
-          TAR_ARGS="$TAR_ARGS $STATIC_DIR"
-          [ "$STATIC_DIR" != "static" ] && TAR_TRANSFORM="$TAR_TRANSFORM --transform=s|^${STATIC_DIR}|static|"
-        fi
-        [ -f app.yml ] && TAR_ARGS="$TAR_ARGS app.yml"
-        [ -f context.yml ] && TAR_ARGS="$TAR_ARGS context.yml"
 
+        TAR_ARGS="$SERVICES_DIR"
+        [ -f app.yml ] && TAR_ARGS="$TAR_ARGS app.yml"
+
+        echo "Packing services..."
         tar -czf /tmp/mockzilla-specs.tar.gz $TAR_TRANSFORM $TAR_ARGS
 
         echo "Registering upload..."

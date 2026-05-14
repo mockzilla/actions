@@ -1,24 +1,37 @@
 # Mockzilla/actions
 
-GitHub Actions for [Mockzilla](https://mockzilla.org) — instant API simulation from your OpenAPI specs.
+GitHub Actions for [Mockzilla](https://mockzilla.org): instant API simulation from your OpenAPI specs.
 
 ---
 
 ## mockzilla/actions/portable@v1
 
-Publishes `openapi/` and `static/` specs to Mockzilla.
+Publishes per-service OpenAPI/static mocks to Mockzilla. Each
+`services/<name>/` folder becomes one service.
 
 ```yaml
 - uses: mockzilla/actions/portable@v1
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
-    region: us-east-1       # optional
+    region: us-east-1        # optional
     memory-size: 256         # optional, in MB (default: 128)
     timeout: 60              # optional, in seconds
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
-    host: api.mockzilla.net   # optional, defaults to org setting
-    spec-dir: openapi        # optional, defaults to 'openapi'
-    static-dir: static       # optional, defaults to 'static'
+    host: api.mockzilla.net  # optional, defaults to org setting
+    services-dir: services   # optional, defaults to 'services'
+```
+
+Expected repo layout:
+
+```
+services/
+  petstore/
+    openapi.yml          # any *.{yml,yaml,json} works; `openapi.*` is canonical
+    config.yml           # optional: latency, errors, mount, upstream
+    context.yml          # optional: flat replacement values
+    static/              # optional: pre-canned responses
+      get/users/index.json
+app.yml                  # optional: global app settings (port, history, etc.)
 ```
 
 ---
@@ -46,8 +59,8 @@ Both actions accept the same inputs:
 
 | Input | Required | Description |
 |---|---|---|
-| `token` | yes | `GITHUB_TOKEN` — used to verify repo identity |
-| `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only — if the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
+| `token` | yes | `GITHUB_TOKEN`, used to verify repo identity. |
+| `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only. If the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
 | `memory-size` | no | Memory allocated to the simulation in megabytes (e.g. `128`, `256`, `512`). Defaults to `128`. |
 | `timeout` | no | Request timeout for the simulation in seconds (e.g. `30`, `60`). |
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
@@ -59,8 +72,7 @@ Both actions accept the same inputs:
 
 | Input | Required | Description |
 |---|---|---|
-| `spec-dir` | no | Directory containing OpenAPI specs. Defaults to `openapi`. |
-| `static-dir` | no | Directory containing static API responses. Defaults to `static`. |
+| `services-dir` | no | Directory containing per-service folders. Defaults to `services`. |
 
 ---
 
@@ -88,8 +100,8 @@ jobs:
 ```
 
 Your API simulation will be live at:
-- `https://api.mockzilla.org/gh/{org}/{repo}/` — main branch
-- `https://api.mockzilla.org/gh/{org}/{repo}/pr-{n}/` — per PR (where supported)
+- `https://api.mockzilla.org/gh/{org}/{repo}/`: main branch
+- `https://api.mockzilla.org/gh/{org}/{repo}/pr-{n}/`: per PR (where supported)
 
 ---
 
@@ -115,7 +127,7 @@ Use in a subsequent step:
 
 On the free plan you can only have one repository connected to Mockzilla at
 a time. If you want to try a different repository, run the action with
-`delete: true` on the old one first — this removes all its mock APIs from
+`delete: true` on the old one first. This removes all its mock APIs from
 Mockzilla and frees the spot so you can publish from another repo.
 
 ```yaml
