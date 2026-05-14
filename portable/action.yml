@@ -96,19 +96,16 @@ runs:
           exit 0
         fi
 
-        # The runtime expects the services tree at a fixed in-archive path
-        # (`services/`). Rewrite the on-disk dir name if the user picked
-        # something else.
-        TAR_TRANSFORM=""
-        if [ "$SERVICES_DIR" != "services" ]; then
-          TAR_TRANSFORM="--transform=s|^${SERVICES_DIR}|services|"
-        fi
+        echo "Installing mockzilla CLI..."
+        install_mockzilla
 
-        TAR_ARGS="$SERVICES_DIR"
-        [ -f app.yml ] && TAR_ARGS="$TAR_ARGS app.yml"
+        PACK_DIR=$(mktemp -d)
+        trap 'rm -rf "$PACK_DIR"' EXIT
+        cp -r "$SERVICES_DIR" "$PACK_DIR/services"
+        [ -f app.yml ] && cp app.yml "$PACK_DIR/"
 
         echo "Packing services..."
-        tar -czf /tmp/mockzilla-specs.tar.gz $TAR_TRANSFORM $TAR_ARGS
+        mockzilla pack --output /tmp/specs.mockz "$PACK_DIR"
 
         echo "Registering upload..."
         register_upload "portable"
@@ -116,7 +113,7 @@ runs:
         echo "Uploading specs..."
         curl -sf -X PUT "$UPLOAD_URL" \
           -H "Content-Type: application/gzip" \
-          --data-binary @/tmp/mockzilla-specs.tar.gz || {
+          --data-binary @/tmp/specs.mockz || {
             post_error "Spec upload failed - your Mockzilla simulation was not updated"
             exit 1
           }
