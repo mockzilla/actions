@@ -43,6 +43,20 @@ post_success() {
   fi
 }
 
+# surface_warnings <response-json>
+# Emits non-fatal notices from an ingest response as GitHub warnings (and a PR
+# comment) without failing the build.
+surface_warnings() {
+  local resp="$1" warning
+  while IFS= read -r warning; do
+    [ -z "$warning" ] && continue
+    echo "::warning::Mockzilla: $warning"
+    if [ -n "$PR_NUMBER" ]; then
+      gh pr comment "$PR_NUMBER" --body "**Mockzilla:** $warning" 2>/dev/null || true
+    fi
+  done < <(echo "$resp" | jq -r '.warnings[]? // empty' 2>/dev/null)
+}
+
 # handle_teardown <mode>
 # Sends teardown request and exits 0.
 handle_teardown() {
@@ -128,6 +142,8 @@ register_upload() {
   fi
 
   FIRST_USE=$(echo "$response" | jq -r '.first_use // empty')
+
+  surface_warnings "$response"
 }
 
 poll_status() {

@@ -35,7 +35,7 @@ inputs:
     required: false
     default: ''
   allowed-ips:
-    description: 'JSON array of CIDRs allowed to reach this simulation (UI and API), Pro plan only; ignored otherwise. Example: ["203.0.113.0/24", "192.168.1.1"].'
+    description: 'JSON array of CIDRs allowed to reach this simulation (UI and API). Requires the IP allowlist feature; ignored if not enabled for your organization. Example: ["203.0.113.0/24", "192.168.1.1"].'
     required: false
     default: ''
   timeout-minutes:
