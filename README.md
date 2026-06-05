@@ -14,8 +14,6 @@ Publishes per-service OpenAPI/static mocks to Mockzilla. Each
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1        # optional
-    memory-size: 256         # optional, in MB (default: 128)
-    timeout: 60              # optional, in seconds
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
     host: api.mockzilla.net  # optional, defaults to org setting
     services-dir: services   # optional, defaults to 'services'
@@ -45,8 +43,6 @@ Builds and publishes a codegen server to Mockzilla.
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1       # optional
-    memory-size: 256         # optional, in MB (default: 128)
-    timeout: 60              # optional, in seconds
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
     host: api.mockzilla.net   # optional, defaults to org setting
 ```
@@ -61,8 +57,6 @@ Both actions accept the same inputs:
 |---|---|---|
 | `token` | yes | `GITHUB_TOKEN`, used to verify repo identity. |
 | `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only. If the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
-| `memory-size` | no | Memory allocated to the simulation in megabytes (e.g. `128`, `256`, `512`). Defaults to `128`. |
-| `timeout` | no | Request timeout for the simulation in seconds (e.g. `30`, `60`). |
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
 | `host` | no | API host for the simulation URL. One of `api.mockzilla.org`, `api.mockzilla.de`, or `api.mockzilla.net`. Defaults to the org setting (or `api.mockzilla.org` if not set). |
 | `timeout-minutes` | no | Maximum minutes the action will poll for the simulation to become active before failing the workflow step. Defaults to `5`. |
@@ -153,5 +147,5 @@ jobs:
 Get your simulation URL without leaving the terminal:
 
 ```bash
-gh run view --exit-status && echo "https://api.mockzilla.org/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/$(git branch --show-current)/"
+gh run view --exit-status && echo "https://api.mockz.io/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/$(git branch --show-current)/"
 ```

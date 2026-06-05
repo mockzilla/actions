@@ -18,20 +18,24 @@ inputs:
       simulation is already deployed. Optional.
     required: false
     default: ''
-  memory-size:
-    description: Memory allocated to the simulation in megabytes (e.g. 128, 256, 512).
-    required: false
-    default: '128'
-  timeout:
-    description: Request timeout for the simulation in seconds (e.g. 30, 60).
-    required: false
-    default: ''
   environment:
     description: JSON object of environment variables to set in the simulation (e.g. '{"ENV":"production","DEBUG":"true"}').
     required: false
     default: ''
   host:
     description: API host for the simulation URL (api.mockzilla.org, api.mockzilla.de, or api.mockzilla.net). Defaults to the org setting.
+    required: false
+    default: ''
+  basic-auth-user:
+    description: Username for HTTP Basic Auth on the API Explorer UI. Set together with basic-auth-password. Empty leaves the UI open.
+    required: false
+    default: ''
+  basic-auth-password:
+    description: Password for the API Explorer Basic Auth. Pass a GitHub secret. Stored hashed, never logged.
+    required: false
+    default: ''
+  allowed-ips:
+    description: 'JSON array of CIDRs allowed to reach this simulation (UI and API), Pro plan only; ignored otherwise. Example: ["203.0.113.0/24", "192.168.1.1"].'
     required: false
     default: ''
   timeout-minutes:
@@ -61,10 +65,11 @@ runs:
         REF: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         PREFERRED_REGION: ${{ inputs.region }}
-        MEMORY_SIZE: ${{ inputs.memory-size }}
-        TIMEOUT: ${{ inputs.timeout }}
         ENVIRONMENT: ${{ inputs.environment }}
         HOST: ${{ inputs.host }}
+        BASIC_AUTH_USER: ${{ inputs.basic-auth-user }}
+        BASIC_AUTH_PASSWORD: ${{ inputs.basic-auth-password }}
+        ALLOWED_IPS: ${{ inputs.allowed-ips }}
         TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
         DELETE: ${{ inputs.delete }}
       run: |
