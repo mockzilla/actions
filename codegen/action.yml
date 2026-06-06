@@ -94,6 +94,14 @@ runs:
           exit 1
         }
 
+        # Service names from the generated import list, shipped to ingest so the
+        # app can show the catalog without hitting the binary's /.services (which
+        # 404s when the UI is disabled). Best-effort: [] if the file is absent.
+        echo "Extracting service list..."
+        SERVICES_JSON=$(grep -oE '/pkg/[a-z0-9_]+"' cmd/server/services_gen.go 2>/dev/null \
+          | sed 's#/pkg/##; s#"##' | sort -u | jq -R . | jq -cs .)
+        export SERVICES_JSON
+
         echo "Registering upload..."
         register_upload "codegen"
 

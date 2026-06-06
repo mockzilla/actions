@@ -96,13 +96,14 @@ handle_delete() {
 # Exits 1 on any error.
 register_upload() {
   local mode="$1" region_field="" env_field="" host_field=""
-  local ba_user_field="" ba_pass_field="" ips_field=""
+  local ba_user_field="" ba_pass_field="" ips_field="" services_field=""
   [ -n "$PREFERRED_REGION" ] && region_field=",\"preferred_region\":\"$PREFERRED_REGION\""
   [ -n "$ENVIRONMENT" ] && env_field=",\"environment\":$ENVIRONMENT"
   [ -n "$HOST" ] && host_field=",\"host\":\"$HOST\""
   [ -n "$BASIC_AUTH_USER" ] && ba_user_field=",\"basic_auth_user\":\"$BASIC_AUTH_USER\""
   [ -n "$BASIC_AUTH_PASSWORD" ] && ba_pass_field=",\"basic_auth_password\":\"$BASIC_AUTH_PASSWORD\""
   [ -n "$ALLOWED_IPS" ] && ips_field=",\"allowed_ips\":$ALLOWED_IPS"
+  [ -n "$SERVICES_JSON" ] && [ "$SERVICES_JSON" != "[]" ] && services_field=",\"services\":$SERVICES_JSON"
 
   local http_code response
   http_code=$(curl -s -w "%{http_code}" \
@@ -110,7 +111,7 @@ register_upload() {
     -X POST "https://ingest.mockzilla.org/webhook?ref=${REF}" \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"${mode}\"${region_field}${env_field}${host_field}${ba_user_field}${ba_pass_field}${ips_field}}")
+    -d "{\"repo\":\"$REPO\",\"event\":\"$EVENT\",\"action\":\"$ACTION\",\"mode\":\"${mode}\"${region_field}${env_field}${host_field}${ba_user_field}${ba_pass_field}${ips_field}${services_field}}")
   response=$(cat /tmp/mz-response.json 2>/dev/null)
   echo "::debug::Ingest HTTP ${http_code}: ${response}"
 
