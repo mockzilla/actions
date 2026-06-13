@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # Shared helpers sourced by portable and codegen actions.
 # Expects these env vars to be set by the caller:
-#   GITHUB_TOKEN, REPO, EVENT, ACTION, REF, PR_NUMBER,
+#   GITHUB_TOKEN, REPO, EVENT, ACTION, REF, DEFAULT_BRANCH, PR_NUMBER,
 #   PREFERRED_REGION, ENVIRONMENT, HOST, TIMEOUT_MINUTES
+
+# Blank ref only for a push to the default branch; a non-default push keeps its name so it can't clobber the default slot.
+if [ "$REF" = "$DEFAULT_BRANCH" ]; then
+  REF=""
+fi
 
 install_mockzilla() {
   GH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}" gh release download \
