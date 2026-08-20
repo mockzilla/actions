@@ -1,6 +1,6 @@
-# Mockzilla/actions
+# mockzilla/actions
 
-GitHub Actions for [Mockzilla](https://mockzilla.org): instant API simulation from your OpenAPI specs.
+GitHub Actions for [Mockzilla](https://mockzilla.org/) - instant API simulation from your OpenAPI specs on every push and pull request. Per-PR preview URLs, zero infrastructure required beyond `GITHUB_TOKEN`.
 
 ---
 
