@@ -106,6 +106,10 @@ Your API simulation will be live at:
 - `https://api.mockz.io/gh/{org}/{repo}/{branch}/`: any other branch, a pull request included, under the
   name of the branch it comes from
 
+Keep those branch names flat. The dispatcher reads the ref as a single path segment
+(`parseLookupKey` in `pkg/dispatcher/routing.go`), so a branch like `feature/checkout`
+deploys and gets a URL, but requests to it resolve to the default branch instead.
+
 ---
 
 ## Outputs
