@@ -58,7 +58,10 @@ Both actions accept the same inputs:
 | `token` | yes | `GITHUB_TOKEN`, used to verify repo identity. |
 | `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only. If the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
-| `host` | no | API host for the simulation URL. One of `api.mockzilla.org`, `api.mockzilla.de`, or `api.mockzilla.net`. Defaults to the org setting (or `api.mockzilla.org` if not set). |
+| `host` | no | API host for the simulation URL. One of `api.mockz.io`, `api.mockz.org`, `api.mockz.net`, `api.mockzilla.org`, `api.mockzilla.de`, or `api.mockzilla.net`. Defaults to the org setting (or `api.mockz.io` if not set). |
+| `basic-auth-user` | no | Username for HTTP Basic Auth on the API Explorer UI. Set together with `basic-auth-password`. Empty leaves the UI open. |
+| `basic-auth-password` | no | Password for the API Explorer Basic Auth. Pass a GitHub secret. Stored hashed, never logged. |
+| `allowed-ips` | no | JSON array of CIDRs allowed to reach this simulation, e.g. `'["203.0.113.0/24"]'`. Ignored with a warning when the org's plan allows no IP allowlist. |
 | `timeout-minutes` | no | Maximum minutes the action will poll for the simulation to become active before failing the workflow step. Defaults to `5`. |
 | `delete` | no | Remove this repository from Mockzilla. When set to `true`, the action skips publishing and deletes all mock APIs for this repo. Useful on the free plan to free up your slot before connecting a different repository. Defaults to `false`. |
 
@@ -79,6 +82,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   publish:
@@ -93,9 +97,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+`closed` has to be listed. GitHub's default activity types for `pull_request` are
+`opened`, `synchronize` and `reopened`, so a workflow that says only `pull_request:`
+never runs when a PR closes and its deployment is never torn down.
+
 Your API simulation will be live at:
-- `https://api.mockzilla.org/gh/{org}/{repo}/`: main branch
-- `https://api.mockzilla.org/gh/{org}/{repo}/pr-{n}/`: per PR (where supported)
+- `https://api.mockz.io/gh/{org}/{repo}/`: default branch
+- `https://api.mockz.io/gh/{org}/{repo}/{branch}/`: any other branch, a pull request included, under the
+  name of the branch it comes from
 
 ---
 
