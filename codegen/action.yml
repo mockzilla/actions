@@ -23,7 +23,9 @@ inputs:
     required: false
     default: ''
   host:
-    description: API host for the simulation URL (api.mockzilla.org, api.mockzilla.de, or api.mockzilla.net). Defaults to the org setting.
+    description: API host for the simulation URL (api.mockz.io, api.mockz.org, api.mockz.net,
+      api.mockzilla.org, api.mockzilla.de, or api.mockzilla.net). Defaults to the org setting,
+      or api.mockz.io.
     required: false
     default: ''
   basic-auth-user:
