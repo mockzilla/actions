@@ -1,5 +1,9 @@
-name: Mockzilla Portable
+name: Mockzilla
+author: Mockzilla
 description: Publishes per-service OpenAPI/static mocks to Mockzilla
+branding:
+  icon: user
+  color: blue
 
 outputs:
   url:
