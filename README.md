@@ -4,13 +4,13 @@ GitHub Actions for [Mockzilla](https://mockzilla.org/) - instant API simulation 
 
 ---
 
-## mockzilla/actions/portable@v1
+## mockzilla/actions@v1
 
 Publishes per-service OpenAPI/static mocks to Mockzilla. Each
 `services/<name>/` folder becomes one service.
 
 ```yaml
-- uses: mockzilla/actions/portable@v1
+- uses: mockzilla/actions@v1
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1        # optional
@@ -92,7 +92,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: mockzilla/actions/portable@v1   # or codegen@v1
+      - uses: mockzilla/actions@v1   # or mockzilla/actions/codegen@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -121,7 +121,7 @@ deploys and gets a URL, but requests to it resolve to the default branch instead
 Use in a subsequent step:
 
 ```yaml
-- uses: mockzilla/actions/portable@v1
+- uses: mockzilla/actions@v1
   id: mockzilla
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
@@ -147,7 +147,7 @@ jobs:
   remove:
     runs-on: ubuntu-latest
     steps:
-      - uses: mockzilla/actions/portable@v1   # or codegen@v1
+      - uses: mockzilla/actions@v1   # or mockzilla/actions/codegen@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           delete: true

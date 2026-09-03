@@ -29,6 +29,16 @@ post_error() {
   fi
 }
 
+# A deployment reports active once it is provisioned, which is not the same as
+# ready to answer: the first request through builds the route registry, and on
+# a large spec that can outrun the gateway and come back as a 504. Spend one
+# request here so the caller's first one is not the one that pays for it.
+# Never fails the build; a simulation that is slow to warm is still a success.
+warm_up() {
+  local url="$1"
+  curl -s -o /dev/null --max-time 30 --retry 3 --retry-delay 5 --retry-all-errors "$url" || true
+}
+
 post_success() {
   local url="$1"
   local terms_notice=""
@@ -181,6 +191,7 @@ poll_status() {
     case "$status" in
       active)
         live_url=$(echo "$resp" | jq -r '.url // empty')
+        warm_up "$live_url"
         post_success "$live_url"
         exit 0
         ;;

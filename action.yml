@@ -88,7 +88,7 @@ runs:
         SERVICES_DIR: ${{ inputs.services-dir }}
         DELETE: ${{ inputs.delete }}
       run: |
-        source "$GITHUB_ACTION_PATH/../shared/functions.sh"
+        source "$GITHUB_ACTION_PATH/shared/functions.sh"
 
         if [ "$DELETE" = "true" ]; then
           handle_delete "portable"
