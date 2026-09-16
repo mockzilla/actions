@@ -4,8 +4,11 @@
 #   GITHUB_TOKEN, REPO, EVENT, ACTION, REF, DEFAULT_BRANCH, PR_NUMBER,
 #   PREFERRED_REGION, ENVIRONMENT, HOST, TIMEOUT_MINUTES
 
-# Blank ref only for a push to the default branch; a non-default push keeps its name so it can't clobber the default slot.
-if [ "$REF" = "$DEFAULT_BRANCH" ]; then
+# A pull request deploys as pr-<number>: the ref is one URL segment, and a branch name can hold slashes.
+# A push to the default branch blanks the ref; any other push keeps its branch name so it can't clobber the default slot.
+if [ "$EVENT" = "pull_request" ]; then
+  REF="pr-${PR_NUMBER}"
+elif [ "$REF" = "$DEFAULT_BRANCH" ]; then
   REF=""
 fi
 
