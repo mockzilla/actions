@@ -102,13 +102,14 @@ jobs:
 never runs when a PR closes and its deployment is never torn down.
 
 Your API simulation will be live at:
-- `https://api.mockz.io/gh/{org}/{repo}/`: default branch
-- `https://api.mockz.io/gh/{org}/{repo}/{branch}/`: any other branch, a pull request included, under the
-  name of the branch it comes from
+- `https://api.mockz.io/gh/{org}/{repo}`: default branch
+- `https://api.mockz.io/gh/{org}/{repo}/pr-{number}`: a pull request, for as long as it is open
+- `https://api.mockz.io/gh/{org}/{repo}/{branch}`: a push to any other branch your workflow lists
 
-Keep those branch names flat. The dispatcher reads the ref as a single path segment
-(`parseLookupKey` in `pkg/dispatcher/routing.go`), so a branch like `feature/checkout`
-deploys and gets a URL, but requests to it resolve to the default branch instead.
+A pull request deploys under its number, so its branch can be called anything,
+`feature/checkout` included. A branch deployed on push keeps its name, with
+anything outside letters, digits, `-` and `_` replaced by `-`: a push to
+`feature/checkout` deploys at `.../feature-checkout`.
 
 ---
 
@@ -157,8 +158,8 @@ jobs:
 
 ## Check from the CLI
 
-Get your simulation URL without leaving the terminal:
+Get the simulation URL of the current branch's pull request without leaving the terminal:
 
 ```bash
-gh run view --exit-status && echo "https://api.mockz.io/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/$(git branch --show-current)/"
+gh run view --exit-status && echo "https://api.mockz.io/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pr-$(gh pr view --json number -q .number)"
 ```
