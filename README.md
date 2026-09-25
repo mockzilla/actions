@@ -15,7 +15,7 @@ Publishes per-service OpenAPI/static mocks to Mockzilla. Each
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1        # optional
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
-    host: api.mockzilla.net  # optional, defaults to org setting
+    host: mockzilla.net      # optional, defaults to org setting
     services-dir: services   # optional, defaults to 'services'
 ```
 
@@ -44,7 +44,7 @@ Builds and publishes a codegen server to Mockzilla.
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1       # optional
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
-    host: api.mockzilla.net   # optional, defaults to org setting
+    host: mockzilla.net     # optional, defaults to org setting
 ```
 
 ---
@@ -58,7 +58,7 @@ Both actions accept the same inputs:
 | `token` | yes | `GITHUB_TOKEN`, used to verify repo identity. |
 | `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only. If the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
-| `host` | no | Where the simulation answers: an API host (`api.mockz.io`, `api.mockz.net`, `api.mockz.org`, `api.mockzilla.org`, `api.mockzilla.de` or `api.mockzilla.net`), or a host for the simulation on one of them (`petstore.api.mockz.io`), which asks for that label. Fixed at the first deploy. Defaults to the org setting (or `api.mockz.io` if not set), with the repo name as the label. |
+| `host` | no | The domain the simulation answers on: `mockz.io`, `mockz.net`, `mockz.org`, `mockzilla.org`, `mockzilla.de` or `mockzilla.net`. Put a label in front to ask for it: `petstore.mockz.io` answers at `https://petstore.api.mockz.io`. Fixed at the first deploy. Defaults to the org setting (or `mockz.io` if not set), with the repo name as the label. |
 | `basic-auth-user` | no | Username for HTTP Basic Auth on the API Explorer UI. Set together with `basic-auth-password`. Empty leaves the UI open. |
 | `basic-auth-password` | no | Password for the API Explorer Basic Auth. Pass a GitHub secret. Stored hashed, never logged. |
 | `allowed-ips` | no | JSON array of CIDRs allowed to reach this simulation, e.g. `'["203.0.113.0/24"]'`. Ignored with a warning when the org's plan allows no IP allowlist. |
@@ -101,7 +101,7 @@ jobs:
 `opened`, `synchronize` and `reopened`, so a workflow that says only `pull_request:`
 never runs when a PR closes and its deployment is never torn down.
 
-Your API simulation answers at a host of its own, on `api.mockz.io` or the API host you picked:
+Your API simulation answers at a host of its own, on `mockz.io` or the domain you picked:
 - `https://{label}.api.mockz.io`: default branch
 - `https://{label}-pr{number}.api.mockz.io`: a pull request, for as long as it is open
 - `https://{label}-{branch}.api.mockz.io`: a push to any other branch your workflow lists
