@@ -103,22 +103,23 @@ never runs when a PR closes and its deployment is never torn down.
 
 Your API simulation answers at a host of its own, on `api.mockz.io` or the API host you picked:
 - `https://{label}.api.mockz.io`: default branch
-- `https://{label}--pr-{number}.api.mockz.io`: a pull request, for as long as it is open
-- `https://{label}--{branch}.api.mockz.io`: a push to any other branch your workflow lists
+- `https://{label}-pr{number}.api.mockz.io`: a pull request, for as long as it is open
 
 The label is the repo name as a host name: lowercase, with anything else turned
-into `-` (`My_Repo` becomes `my-repo`), and `-2`, `-3` if it is taken. To ask for
-another, set the `host` input before the first deploy. The first deploy of a new
-simulation reports its path address; its own host shows from the next deploy on.
+into `-` (`My_Repo` becomes `my-repo`), up to 55 characters, and `-2`, `-3` if it
+is taken. A label never ends in `-pr` and digits, which is kept for pull requests.
+To ask for another, set the `host` input before the first deploy. The first deploy
+of a new simulation reports its path address; its own host shows from the next
+deploy on.
 
-The path address keeps working as well:
+The path address keeps working as well, and it is the only address of a push to
+any other branch your workflow lists:
 - `https://api.mockz.io/gh/{org}/{repo}`, `.../pr-{number}` and `.../{branch}`
 
 A pull request deploys under its number, so its branch can be called anything,
 `feature/checkout` included. A branch deployed on push keeps its name, with
 anything outside letters, digits, `-` and `_` replaced by `-`: a push to
-`feature/checkout` deploys as `feature-checkout`. A branch name that can't be
-part of a host (upper case, `_`, or too long) answers at its path only.
+`feature/checkout` deploys as `feature-checkout`.
 
 ---
 
