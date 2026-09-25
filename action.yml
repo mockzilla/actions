@@ -27,9 +27,10 @@ inputs:
     required: false
     default: ''
   host:
-    description: API host for the simulation URL (api.mockz.io, api.mockz.org, api.mockz.net,
-      api.mockzilla.org, api.mockzilla.de, or api.mockzilla.net). Defaults to the org setting,
-      or api.mockz.io.
+    description: The domain the simulation answers on (mockz.io, mockz.net, mockz.org, mockzilla.org,
+      mockzilla.de or mockzilla.net). Put a label in front to ask for it, petstore.mockz.io, and the
+      simulation answers at https://petstore.api.mockz.io. Fixed at the first deploy. Defaults to the org
+      setting, or mockz.io, with the repo name as the label.
     required: false
     default: ''
   basic-auth-user:

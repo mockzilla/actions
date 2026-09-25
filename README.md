@@ -15,7 +15,7 @@ Publishes per-service OpenAPI/static mocks to Mockzilla. Each
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1        # optional
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
-    host: api.mockzilla.net  # optional, defaults to org setting
+    host: mockzilla.net      # optional, defaults to org setting
     services-dir: services   # optional, defaults to 'services'
 ```
 
@@ -44,7 +44,7 @@ Builds and publishes a codegen server to Mockzilla.
     token: ${{ secrets.GITHUB_TOKEN }}
     region: us-east-1       # optional
     environment: '{"ENV":"production","DEBUG":"true"}'  # optional
-    host: api.mockzilla.net   # optional, defaults to org setting
+    host: mockzilla.net     # optional, defaults to org setting
 ```
 
 ---
@@ -58,7 +58,7 @@ Both actions accept the same inputs:
 | `token` | yes | `GITHUB_TOKEN`, used to verify repo identity. |
 | `region` | no | Preferred AWS region (e.g. `us-east-1`, `ap-southeast-1`). Used as a hint on first deploy only. If the region is at capacity, the nearest available one is used instead. Has no effect after the simulation is already deployed. |
 | `environment` | no | JSON object of environment variables to set in the simulation (e.g. `'{"ENV":"production"}'`). |
-| `host` | no | API host for the simulation URL. One of `api.mockz.io`, `api.mockz.org`, `api.mockz.net`, `api.mockzilla.org`, `api.mockzilla.de`, or `api.mockzilla.net`. Defaults to the org setting (or `api.mockz.io` if not set). |
+| `host` | no | The domain the simulation answers on: `mockz.io`, `mockz.net`, `mockz.org`, `mockzilla.org`, `mockzilla.de` or `mockzilla.net`. Put a label in front to ask for it: `petstore.mockz.io` answers at `https://petstore.api.mockz.io`. Fixed at the first deploy. Defaults to the org setting (or `mockz.io` if not set), with the repo name as the label. |
 | `basic-auth-user` | no | Username for HTTP Basic Auth on the API Explorer UI. Set together with `basic-auth-password`. Empty leaves the UI open. |
 | `basic-auth-password` | no | Password for the API Explorer Basic Auth. Pass a GitHub secret. Stored hashed, never logged. |
 | `allowed-ips` | no | JSON array of CIDRs allowed to reach this simulation, e.g. `'["203.0.113.0/24"]'`. Ignored with a warning when the org's plan allows no IP allowlist. |
@@ -101,15 +101,28 @@ jobs:
 `opened`, `synchronize` and `reopened`, so a workflow that says only `pull_request:`
 never runs when a PR closes and its deployment is never torn down.
 
-Your API simulation will be live at:
-- `https://api.mockz.io/gh/{org}/{repo}`: default branch
-- `https://api.mockz.io/gh/{org}/{repo}/pr-{number}`: a pull request, for as long as it is open
-- `https://api.mockz.io/gh/{org}/{repo}/{branch}`: a push to any other branch your workflow lists
+Your API simulation answers at a host of its own, on `mockz.io` or the domain you picked:
+- `https://{label}.api.mockz.io`: default branch
+- `https://{label}-pr{number}.api.mockz.io`: a pull request, for as long as it is open
+- `https://{label}-{branch}.api.mockz.io`: a push to any other branch your workflow lists
+
+The label is the repo name as a host name: lowercase, with anything else turned
+into `-` (`My_Repo` becomes `my-repo`), up to 55 characters, and `-2`, `-3` if it
+is taken. A label never ends in `-pr` and digits, which is kept for pull requests.
+To ask for another, set the `host` input before the first deploy.
 
 A pull request deploys under its number, so its branch can be called anything,
-`feature/checkout` included. A branch deployed on push keeps its name, with
-anything outside letters, digits, `-` and `_` replaced by `-`: a push to
-`feature/checkout` deploys at `.../feature-checkout`.
+`feature/checkout` included. A branch deployed on push has its name in its host,
+lowercased, with everything but letters and digits removed: a push to
+`feature/checkout` on `petstore` answers at `https://petstore-featurecheckout.api.mockz.io`.
+Branches deploy on plans with PR environments and count toward the same limit.
+
+A push to a branch fails, and says why, when:
+- its name has no letters or digits,
+- its name reads as a pull request, `pr` and digits (`pr-12`),
+- `{label}-{branch}` is longer than 63 characters,
+- another live branch gets the same host (`feature/x` and `feature-x`),
+- another simulation already answers at that host. Rename the branch.
 
 ---
 
@@ -158,8 +171,9 @@ jobs:
 
 ## Check from the CLI
 
-Get the simulation URL of the current branch's pull request without leaving the terminal:
+Get the simulation URL of the current branch's pull request without leaving the terminal. It reads
+the URL from the action's comment on the pull request:
 
 ```bash
-gh run view --exit-status && echo "https://api.mockz.io/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pr-$(gh pr view --json number -q .number)"
+gh run view --exit-status && gh pr view --json comments -q '.comments[].body' | grep -o 'simulation live at [^ ]*' | tail -1 | cut -d' ' -f4
 ```
