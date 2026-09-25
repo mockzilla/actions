@@ -104,22 +104,25 @@ never runs when a PR closes and its deployment is never torn down.
 Your API simulation answers at a host of its own, on `api.mockz.io` or the API host you picked:
 - `https://{label}.api.mockz.io`: default branch
 - `https://{label}-pr{number}.api.mockz.io`: a pull request, for as long as it is open
+- `https://{label}-{branch}.api.mockz.io`: a push to any other branch your workflow lists
 
 The label is the repo name as a host name: lowercase, with anything else turned
 into `-` (`My_Repo` becomes `my-repo`), up to 55 characters, and `-2`, `-3` if it
 is taken. A label never ends in `-pr` and digits, which is kept for pull requests.
-To ask for another, set the `host` input before the first deploy. The first deploy
-of a new simulation reports its path address; its own host shows from the next
-deploy on.
-
-The path address keeps working as well, and it is the only address of a push to
-any other branch your workflow lists:
-- `https://api.mockz.io/gh/{org}/{repo}`, `.../pr-{number}` and `.../{branch}`
+To ask for another, set the `host` input before the first deploy.
 
 A pull request deploys under its number, so its branch can be called anything,
-`feature/checkout` included. A branch deployed on push keeps its name, with
-anything outside letters, digits, `-` and `_` replaced by `-`: a push to
-`feature/checkout` deploys as `feature-checkout`.
+`feature/checkout` included. A branch deployed on push has its name in its host,
+lowercased, with everything but letters and digits removed: a push to
+`feature/checkout` on `petstore` answers at `https://petstore-featurecheckout.api.mockz.io`.
+Branches deploy on plans with PR environments and count toward the same limit.
+
+A push to a branch fails, and says why, when:
+- its name has no letters or digits,
+- its name reads as a pull request, `pr` and digits (`pr-12`),
+- `{label}-{branch}` is longer than 63 characters,
+- another live branch gets the same host (`feature/x` and `feature-x`),
+- another simulation already answers at that host. Rename the branch.
 
 ---
 
@@ -127,7 +130,7 @@ anything outside letters, digits, `-` and `_` replaced by `-`: a push to
 
 | Output | Description |
 |---|---|
-| `url` | The live simulation URL: its own host once it has one, else its path address |
+| `url` | The live simulation URL |
 
 Use in a subsequent step:
 
@@ -168,9 +171,9 @@ jobs:
 
 ## Check from the CLI
 
-Get the simulation URL of the current branch's pull request without leaving the terminal. This builds
-its path address, which always answers; the PR comment has the simulation's own host:
+Get the simulation URL of the current branch's pull request without leaving the terminal. It reads
+the URL from the action's comment on the pull request:
 
 ```bash
-gh run view --exit-status && echo "https://api.mockz.io/gh/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pr-$(gh pr view --json number -q .number)"
+gh run view --exit-status && gh pr view --json comments -q '.comments[].body' | grep -o 'simulation live at [^ ]*' | tail -1 | cut -d' ' -f4
 ```
